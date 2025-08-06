@@ -19,6 +19,8 @@ struct ContentView: View {
     @State private var questionCount = 0
     @State private var showingFinalScore = false
     
+    @State private var selectedFlag : Int? = nil
+
     var body: some View {
         VStack(spacing: 15) {
             ZStack {
@@ -29,8 +31,7 @@ struct ContentView: View {
                     .ignoresSafeArea()
                 VStack(spacing: 30){
                         Text("Guess the flag")
-                            .font(.largeTitle.weight(.bold))
-                            .foregroundStyle(.white)
+                        .titleStyle()
                     VStack{
                         Text("Tap the flag of")
                             .font(.subheadline.weight(.heavy))
@@ -40,14 +41,19 @@ struct ContentView: View {
                             .font(.largeTitle.weight(.semibold))
                             .foregroundStyle(.white)
                     }
-                    ForEach(0..<3){ number in
+                    ForEach(0..<3){ flagIndex in
                         Button{
-                            flagTapped(number)
+                            flagTapped(flagIndex)
                         }label: {
-                            Image(countries[number])
-                                .clipShape(.capsule)
-                                .shadow(radius: 5)
-                        }
+                            FlagView(country: countries[flagIndex])
+                             .rotation3DEffect(
+                                 .degrees(selectedFlag == flagIndex ? 180 : 0),
+                                  axis: (x:0, y:1, z:0)
+                                )
+                             .opacity(selectedFlag == nil || selectedFlag == flagIndex ? 1 : 0.25)
+                             .scaleEffect(selectedFlag == nil || selectedFlag == flagIndex ? 1 : 0.8)
+                             .animation(.easeInOut(duration: 0.5), value: selectedFlag)
+                            }
                     }
                 }
             }
@@ -56,27 +62,25 @@ struct ContentView: View {
             } message: {
                 Text("Your score is \(score)")
                     .foregroundStyle(.white)
-                    .font(.title.bold())
-            }
+                    .font(.title.bold())            }
             .alert("Final score is \(score)", isPresented: $showingFinalScore){
                 Button("Restart", action: resetGame)
             } message: {
                 Text("Tap to restart")
             }
-        }.frame(maxWidth: .infinity)
-            .padding(.vertical, 20)
-            .background(.regularMaterial)
-            .clipShape(.rect(cornerRadius: 20))
+        }
     }
     
-    func flagTapped(_ number: Int){
+    func flagTapped(_ tappedFlagIndex: Int){
+        selectedFlag = tappedFlagIndex // <- store which flag was tapped
+        
         questionCount += 1
         
-        if number == correctAnswer{
+        if tappedFlagIndex == correctAnswer{
             scoreTitle = "Correct!"
             score += 20
         }else{
-            scoreTitle = "Wrong! its the flag of \(countries[correctAnswer])."
+            scoreTitle = "Wrong! its the flag of \(countries[tappedFlagIndex])."
         }
         
         if questionCount == 5 {
@@ -89,6 +93,7 @@ struct ContentView: View {
     func askQuestion(){
         countries.shuffle()
         correctAnswer = Int.random(in: 0...2)
+        selectedFlag = nil // <- reseting for next round
     }
     func resetGame(){
         score = 0
@@ -98,8 +103,36 @@ struct ContentView: View {
     }
 }
 
+struct FlagView : View {
+    var country : String
+    
+    var body: some View {
+        Image(country)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 20)
+            .background(.regularMaterial)
+            .clipShape(.rect(cornerRadius: 20))
+    }
+}
+
+struct Title : ViewModifier{
+    func body(content: Content) -> some View {
+        content
+            .font(.largeTitle)
+            .foregroundStyle(.blue)
+            .padding()
+            .clipShape(.rect(cornerRadius: 10))
+    }
+}
+
+extension View {
+    func titleStyle() -> some View {
+        modifier(Title())
+    }
+}
 
 #Preview {
     ContentView()
 }
+
 
